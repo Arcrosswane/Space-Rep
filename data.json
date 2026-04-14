@@ -1,0 +1,110 @@
+{
+    "topics": [
+        {
+            "id": "7587dbcf-691a-4b52-a5b6-414f17644f9f",
+            "subject": "Physics",
+            "topic_name": "Chapter 2 - Force and laws of motion",
+            "difficulty": "Medium",
+            "created_date": "2026-04-14"
+        },
+        {
+            "id": "016fe686-44f5-4f81-850c-0ac259a9c90f",
+            "subject": "NEW_SUBJECT",
+            "topic_name": "Chapter 2 - Force and laws of motion",
+            "difficulty": "Medium",
+            "created_date": "2026-04-14"
+        }
+    ],
+    "tasks": [
+        {
+            "id": "f8640895-b23d-4f0b-93f1-6d924e02776c",
+            "topic_id": "7587dbcf-691a-4b52-a5b6-414f17644f9f",
+            "title": "Review 1",
+            "scheduled_date": "2026-04-15",
+            "status": "pending",
+            "interval_stage": 1,
+            "missed_count": 0
+        },
+        {
+            "id": "b37fe766-2e63-4da1-8df1-01f316348310",
+            "topic_id": "7587dbcf-691a-4b52-a5b6-414f17644f9f",
+            "title": "Review 2",
+            "scheduled_date": "2026-04-17",
+            "status": "pending",
+            "interval_stage": 2,
+            "missed_count": 0
+        },
+        {
+            "id": "ba4ae591-ad84-47ab-bc3c-1ea715f38fa2",
+            "topic_id": "7587dbcf-691a-4b52-a5b6-414f17644f9f",
+            "title": "Review 3",
+            "scheduled_date": "2026-04-21",
+            "status": "pending",
+            "interval_stage": 3,
+            "missed_count": 0
+        },
+        {
+            "id": "b10ec647-0b28-4eb5-97b4-bc87819403e3",
+            "topic_id": "7587dbcf-691a-4b52-a5b6-414f17644f9f",
+            "title": "Review 4",
+            "scheduled_date": "2026-04-28",
+            "status": "pending",
+            "interval_stage": 4,
+            "missed_count": 0
+        },
+        {
+            "id": "70a1f6a4-0643-4697-8c6c-ea28ab76e422",
+            "topic_id": "7587dbcf-691a-4b52-a5b6-414f17644f9f",
+            "title": "Review 5",
+            "scheduled_date": "2026-05-14",
+            "status": "pending",
+            "interval_stage": 5,
+            "missed_count": 0
+        },
+        {
+            "id": "e4eab10e-36fb-4fc2-857d-42f70107eabd",
+            "topic_id": "016fe686-44f5-4f81-850c-0ac259a9c90f",
+            "title": "Review 1",
+            "scheduled_date": "2026-04-15",
+            "status": "pending",
+            "interval_stage": 1,
+            "missed_count": 0
+        },
+        {
+            "id": "484b2d99-fcee-4b6d-9907-62547bd97c74",
+            "topic_id": "016fe686-44f5-4f81-850c-0ac259a9c90f",
+            "title": "Review 2",
+            "scheduled_date": "2026-04-17",
+            "status": "pending",
+            "interval_stage": 2,
+            "missed_count": 0
+        },
+        {
+            "id": "f03e743e-a4bd-4b78-8b72-6a42ae3aadb1",
+            "topic_id": "016fe686-44f5-4f81-850c-0ac259a9c90f",
+            "title": "Review 3",
+            "scheduled_date": "2026-04-21",
+            "status": "pending",
+            "interval_stage": 3,
+            "missed_count": 0
+        },
+        {
+            "id": "0ea555d1-1da3-453b-ab57-6d2b093b36f9",
+            "topic_id": "016fe686-44f5-4f81-850c-0ac259a9c90f",
+            "title": "Review 4",
+            "scheduled_date": "2026-04-28",
+            "status": "pending",
+            "interval_stage": 4,
+            "missed_count": 0
+        },
+        {
+            "id": "acb3952b-0007-4503-9b4f-e1704f6a3882",
+            "topic_id": "016fe686-44f5-4f81-850c-0ac259a9c90f",
+            "title": "Review 5",
+            "scheduled_date": "2026-05-14",
+            "status": "pending",
+            "interval_stage": 5,
+            "missed_count": 0
+        }
+    ]
+}

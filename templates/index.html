@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="flex flex-col space-y-10">
+
+    <header class="flex flex-col gap-1">
+        <h1 class="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">Dashboard</h1>
+        <p class="text-slate-500 dark:text-slate-400 text-sm font-medium">Your optimized study schedule for today.</p>
+    </header>
+
+    {% if session.get('last_added_topic_id') %}
+    <div class="bg-amber-50 border border-amber-200 p-4 rounded-xl shadow-sm mb-2 flex justify-between items-center dark:bg-amber-900/20 dark:border-amber-700/50">
+        <div class="flex items-center">
+            <svg class="h-5 w-5 text-amber-500 mr-2.5" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm.75-11.25a.75.75 0 00-1.5 0v4.59L7.3 9.24a.75.75 0 00-1.1 1.02l3.25 3.5a.75.75 0 001.1 0l3.25-3.5a.75.75 0 10-1.1-1.02l-1.95 2.1V6.75z" clip-rule="evenodd" />
+            </svg>
+            <p class="text-sm text-amber-800 dark:text-amber-400 font-medium">
+                Topic successfully added.
+            </p>
+        </div>
+        <form action="{{ url_for('undo_last_topic') }}" method="POST" class="m-0">
+            <button type="submit" class="text-sm border border-amber-300 bg-white hover:bg-amber-100 text-amber-700 font-semibold py-1.5 px-4 rounded-lg transition-colors dark:bg-amber-800 dark:text-amber-200 dark:border-amber-600 dark:hover:bg-amber-700 shadow-sm">
+                Undo
+            </button>
+        </form>
+    </div>
+    {% endif %}
+
+    {% macro render_task_card(task, highlight_color_class) %}
+    <div class="task-card flex flex-col sm:flex-row justify-between items-start sm:items-center bg-white dark:bg-zinc-800/50 border border-slate-200 dark:border-zinc-700/50 rounded-xl p-5 shadow-sm hover:shadow-md group">
+        <div class="flex-1 min-w-0 pr-4 mb-4 sm:mb-0">
+            <div class="flex items-center gap-2 mb-1">
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {{ highlight_color_class }}">
+                    {{ task.subject }}
+                </span>
+                <span class="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-zinc-500">{{ task.difficulty }}</span>
+                {% if task.missed_count > 0 %}
+                    <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">
+                        MISSED: {{ task.missed_count }}
+                    </span>
+                {% endif %}
+            </div>
+            <h3 class="text-lg font-semibold text-slate-900 dark:text-zinc-100 truncate">{{ task.topic_name }}</h3>
+            <div class="text-sm text-slate-500 dark:text-zinc-400 mt-1 flex items-center gap-1.5">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                Scheduled: {{ task.scheduled_date }} &bull; {{ task.title }}
+            </div>
+        </div>
+        
+        <div class="flex shrink-0 items-center gap-2 w-full sm:w-auto">
+            <form action="{{ url_for('delay_task', task_id=task.id) }}" method="POST" class="w-full sm:w-auto">
+                <button type="submit" class="w-full justify-center inline-flex items-center px-3 py-2 bg-slate-100 dark:bg-zinc-700 text-slate-700 dark:text-zinc-300 hover:bg-slate-200 dark:hover:bg-zinc-600 font-medium rounded-lg text-sm transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-900 dark:focus:ring-white">
+                    <svg class="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    Delay
+                </button>
+            </form>
+            <form action="{{ url_for('complete_task', task_id=task.id) }}" method="POST" class="w-full sm:w-auto">
+                <button type="submit" class="w-full justify-center inline-flex items-center px-4 py-2 bg-slate-900 dark:bg-white text-white dark:text-slate-900 hover:bg-slate-800 dark:hover:bg-slate-100 font-medium rounded-lg text-sm transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-900 dark:focus:ring-white">
+                    <svg class="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                    Complete
+                </button>
+            </form>
+        </div>
+    </div>
+    {% endmacro %}
+
+
+    <!-- Today's Tasks -->
+    <section class="space-y-4">
+        <h2 class="text-lg font-semibold text-slate-800 dark:text-zinc-200 flex items-center gap-2">
+            <div class="w-2 h-2 rounded-full bg-primary-500"></div>
+            Today's Focus
+        </h2>
+        
+        {% if today|length == 0 %}
+            <div class="p-8 text-center rounded-xl bg-slate-50 dark:bg-zinc-800/30 border border-dashed border-slate-200 dark:border-zinc-700">
+                <p class="text-slate-500 dark:text-zinc-400 text-sm">No tasks scheduled for today. You're all caught up!</p>
+            </div>
+        {% else %}
+            <div class="grid grid-cols-1 gap-3">
+                {% for task in today %}
+                    {{ render_task_card(task, "bg-primary-100 text-primary-800 dark:bg-primary-900/30 dark:text-primary-300") }}
+                {% endfor %}
+            </div>
+        {% endif %}
+    </section>
+
+    <!-- Missed Tasks (Only render if there are missed tasks) -->
+    {% if missed|length > 0 %}
+    <section class="space-y-4 fade-in" style="animation-delay: 100ms;">
+        <h2 class="text-lg font-semibold text-slate-800 dark:text-zinc-200 flex items-center gap-2">
+            <div class="w-2 h-2 rounded-full bg-red-500 animate-pulse"></div>
+            Action Required
+        </h2>
+        <div class="grid grid-cols-1 gap-3">
+            {% for task in missed %}
+                {{ render_task_card(task, "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300 border border-red-200 dark:border-red-900/50") }}
+            {% endfor %}
+        </div>
+    </section>
+    {% endif %}
+
+    <!-- Tomorrow's Tasks -->
+    <section class="space-y-4 fade-in" style="animation-delay: 200ms;">
+        <h2 class="text-lg font-semibold text-slate-800 dark:text-zinc-200 flex items-center gap-2">
+            <div class="w-2 h-2 rounded-full bg-slate-300 dark:bg-zinc-600"></div>
+            Tomorrow's Radar
+        </h2>
+        
+        {% if upcoming|length == 0 %}
+            <div class="p-8 text-center rounded-xl bg-slate-50 dark:bg-zinc-800/30 border border-dashed border-slate-200 dark:border-zinc-700">
+                <p class="text-slate-500 dark:text-zinc-400 text-sm">No tasks scheduled for tomorrow.</p>
+            </div>
+        {% else %}
+            <div class="grid grid-cols-1 gap-3">
+                {% for task in upcoming %}
+                    <div class="flex items-center justify-between p-4 bg-white dark:bg-zinc-800/20 border border-slate-100 dark:border-zinc-800 rounded-lg">
+                        <div class="flex flex-col">
+                            <span class="text-sm font-medium text-slate-800 dark:text-zinc-300">{{ task.subject }} - {{ task.topic_name }}</span>
+                            <span class="text-xs text-slate-500 dark:text-zinc-500">{{ task.title }}</span>
+                        </div>
+                        <span class="text-xs font-medium text-slate-500 dark:text-zinc-400 tabular-nums">
+                            {{ task.scheduled_date }}
+                        </span>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    </section>
+
+</div>
+
+{% endblock %}
