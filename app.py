@@ -185,18 +185,20 @@ def get_subject_color_id(subject):
 def add_event_to_calendar(task, topic):
     service = get_calendar_service()
     if not service:
-        return
+        return False
+
+    start_date = datetime.date.fromisoformat(task['scheduled_date'])
+    end_date = start_date + datetime.timedelta(days=1)
     
     event = {
         'summary': f"Review: {topic['subject']} - {topic['topic_name']}",
         'description': f"Spaced Repetition Review for {topic['subject']}. Task: {task['title']}\nDifficulty: {topic['difficulty']}",
         'start': {
-            'date': task['scheduled_date'],
-            'timeZone': 'UTC',
+            'date': start_date.isoformat(),
         },
         'end': {
-            'date': task['scheduled_date'],
-            'timeZone': 'UTC',
+            # Google all-day events require exclusive end date.
+            'date': end_date.isoformat(),
         },
     }
     
@@ -205,13 +207,15 @@ def add_event_to_calendar(task, topic):
     try:
         created_event = service.events().insert(calendarId='primary', body=event).execute()
         task['calendar_event_id'] = created_event.get('id')
+        return True
     except Exception as e:
         print(f"Failed to create Google Calendar event: {e}")
+        return False
 
 def add_google_task(task, topic):
     service = get_tasks_service()
     if not service:
-        return
+        return False
 
     body = {
         "title": f"Review: {topic['subject']} - {topic['topic_name']} ({task['title']})",
@@ -221,45 +225,61 @@ def add_google_task(task, topic):
     try:
         created = service.tasks().insert(tasklist='@default', body=body).execute()
         task['google_task_id'] = created.get('id')
+        return True
     except Exception as e:
         print(f"Failed to create Google Task: {e}")
+        return False
 
-def update_google_task_date(task):
+def update_google_task_date(task, topic=None):
     service = get_tasks_service()
-    if not service or 'google_task_id' not in task:
+    if not service:
         return
+    if 'google_task_id' not in task and topic:
+        add_google_task(task, topic)
+    if 'google_task_id' not in task:
+        return False
     try:
         body = service.tasks().get(tasklist='@default', task=task['google_task_id']).execute()
         body['due'] = f"{task['scheduled_date']}T00:00:00.000Z"
         service.tasks().update(tasklist='@default', task=task['google_task_id'], body=body).execute()
+        return True
     except Exception as e:
         print(f"Failed to update Google Task date: {e}")
+        return False
 
-def complete_google_task(task):
+def complete_google_task(task, topic=None):
     service = get_tasks_service()
-    if not service or 'google_task_id' not in task:
+    if not service:
+        return False
+    if 'google_task_id' not in task and topic:
+        add_google_task(task, topic)
+    if 'google_task_id' not in task:
         return
     try:
         body = service.tasks().get(tasklist='@default', task=task['google_task_id']).execute()
         body['status'] = 'completed'
         body['completed'] = datetime.datetime.utcnow().replace(microsecond=0).isoformat() + "Z"
         service.tasks().update(tasklist='@default', task=task['google_task_id'], body=body).execute()
+        return True
     except Exception as e:
         print(f"Failed to complete Google Task: {e}")
+        return False
 
 def delete_google_task(task):
     service = get_tasks_service()
     if not service or 'google_task_id' not in task:
-        return
+        return False
     try:
         service.tasks().delete(tasklist='@default', task=task['google_task_id']).execute()
+        return True
     except Exception as e:
         print(f"Failed to delete Google Task: {e}")
+        return False
 
-def add_task_to_google_keep(topic, task):
+def add_task_to_google_keep(topic, task, action="created"):
     keep = get_google_keep_client()
     if not keep:
-        return
+        return False
 
     track = topic.get("track", "School")
     target_note = None
@@ -271,15 +291,23 @@ def add_task_to_google_keep(topic, task):
     if not target_note:
         target_note = keep.createNote(track, "")
 
+    action_text = {
+        "created": "ADDED",
+        "delayed": "DELAYED",
+        "completed": "COMPLETED",
+        "deleted": "DELETED"
+    }.get(action, "UPDATED")
     keep_text = (
-        f"{task['scheduled_date']}: {topic['subject']} - "
+        f"[{action_text}] {task['scheduled_date']}: {topic['subject']} - "
         f"{topic['topic_name']} ({task['title']})"
     )
     target_note.text = (target_note.text + "\n" + keep_text).strip()
     try:
         keep.sync()
+        return True
     except Exception as e:
         print(f"Failed to sync Google Keep note: {e}")
+        return False
 
 def update_calendar_event_date(task):
     service = get_calendar_service()
@@ -361,9 +389,9 @@ def generate_tasks(topic, existing_tasks=None):
             "missed_count": 0
         }
         tasks.append(task)
-        add_event_to_calendar(task, topic)
-        add_google_task(task, topic)
-        add_task_to_google_keep(topic, task)
+        task["calendar_synced"] = add_event_to_calendar(task, topic)
+        task["google_tasks_synced"] = add_google_task(task, topic)
+        task["google_keep_synced"] = add_task_to_google_keep(topic, task, action="created")
         
     return tasks
 
@@ -378,6 +406,7 @@ def dashboard():
     missed_tasks = []
     today_tasks = []
     upcoming_tasks = []
+    later_tasks = []
     
     topic_map = {t['id']: t for t in data['topics']}
     
@@ -397,10 +426,19 @@ def dashboard():
             today_tasks.append(task_view)
         elif task['scheduled_date'] == tomorrow_str:
             upcoming_tasks.append(task_view)
+        elif task['scheduled_date'] > tomorrow_str:
+            later_tasks.append(task_view)
             
     upcoming_tasks.sort(key=lambda x: x['scheduled_date'])
+    later_tasks.sort(key=lambda x: x['scheduled_date'])
             
-    return render_template('index.html', missed=missed_tasks, today=today_tasks, upcoming=upcoming_tasks)
+    return render_template(
+        'index.html',
+        missed=missed_tasks,
+        today=today_tasks,
+        upcoming=upcoming_tasks,
+        later=later_tasks
+    )
 
 @app.route('/add', methods=['GET', 'POST'])
 def add_topic():
@@ -453,6 +491,12 @@ def add_topic():
         
         save_data(data)
         session['last_added_topic_id'] = topic['id']
+        if not any(t.get("calendar_event_id") for t in new_tasks):
+            flash("Topic saved, but Google Calendar sync did not complete. Check Google credentials/scopes and re-authenticate.")
+        if not any(t.get("google_task_id") for t in new_tasks):
+            flash("Topic saved, but Google Tasks sync did not complete. Check Tasks API is enabled and re-authenticate.")
+        if not any(t.get("google_keep_synced") for t in new_tasks):
+            flash("Topic saved, but Google Keep sync did not complete. Check Keep credentials in .env.")
         flash("Topic added and review tasks scheduled.")
         return redirect(url_for('dashboard'))
         
@@ -481,6 +525,9 @@ def undo_last_topic():
         if task['topic_id'] == topic_id:
             delete_calendar_event(task)
             delete_google_task(task)
+            topic = next((t for t in data['topics'] if t['id'] == topic_id), None)
+            if topic:
+                add_task_to_google_keep(topic, task, action="deleted")
         else:
             tasks_to_keep.append(task)
             
@@ -498,10 +545,15 @@ def undo_last_topic():
 @app.route('/complete_task/<task_id>', methods=['POST'])
 def complete_task(task_id):
     data = load_data()
+    topic_map = {t['id']: t for t in data['topics']}
     for task in data['tasks']:
         if task['id'] == task_id:
             task['status'] = 'completed'
-            complete_google_task(task)
+            topic = topic_map.get(task['topic_id'])
+            if not complete_google_task(task, topic=topic):
+                flash("Task completed locally, but Google Tasks update failed.")
+            if topic and not add_task_to_google_keep(topic, task, action="completed"):
+                flash("Task completed locally, but Google Keep update failed.")
             break
             
     save_data(data)
@@ -511,6 +563,7 @@ def complete_task(task_id):
 def delay_task(task_id):
     data = load_data()
     target_task = None
+    topic_map = {t['id']: t for t in data['topics']}
     
     for task in data['tasks']:
         if task['id'] == task_id:
@@ -529,7 +582,11 @@ def delay_task(task_id):
                 task['scheduled_date'] = new_date.isoformat()
                 task['missed_count'] = max(0, task.get('missed_count', 0) - 1) # Reduce missed count since we're explicitly delaying
                 update_calendar_event_date(task)
-                update_google_task_date(task)
+                topic = topic_map.get(task['topic_id'])
+                if not update_google_task_date(task, topic=topic):
+                    flash("Task delayed locally, but Google Tasks date update failed.")
+                if topic and not add_task_to_google_keep(topic, task, action="delayed"):
+                    flash("Task delayed locally, but Google Keep update failed.")
                 
         save_data(data)
         

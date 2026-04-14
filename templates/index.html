@@ -129,6 +129,34 @@
         {% endif %}
     </section>
 
+    <!-- Future Tasks (after tomorrow) -->
+    <section class="space-y-4 fade-in" style="animation-delay: 260ms;">
+        <h2 class="text-lg font-semibold text-slate-800 dark:text-zinc-200 flex items-center gap-2">
+            <div class="w-2 h-2 rounded-full bg-indigo-400 dark:bg-indigo-500"></div>
+            Future Queue
+        </h2>
+        
+        {% if later|length == 0 %}
+            <div class="p-8 text-center rounded-xl bg-slate-50 dark:bg-zinc-800/30 border border-dashed border-slate-200 dark:border-zinc-700">
+                <p class="text-slate-500 dark:text-zinc-400 text-sm">No tasks scheduled after tomorrow.</p>
+            </div>
+        {% else %}
+            <div class="grid grid-cols-1 gap-3">
+                {% for task in later %}
+                    <div class="flex items-center justify-between p-4 bg-white dark:bg-zinc-800/20 border border-slate-100 dark:border-zinc-800 rounded-lg">
+                        <div class="flex flex-col">
+                            <span class="text-sm font-medium text-slate-800 dark:text-zinc-300">{{ task.subject }} - {{ task.topic_name }}</span>
+                            <span class="text-xs text-slate-500 dark:text-zinc-500">{{ task.title }}</span>
+                        </div>
+                        <span class="text-xs font-medium text-slate-500 dark:text-zinc-400 tabular-nums">
+                            {{ task.scheduled_date }}
+                        </span>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    </section>
+
 </div>
 
 {% endblock %}
