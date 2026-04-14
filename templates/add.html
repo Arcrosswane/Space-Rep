@@ -13,17 +13,22 @@
         <form action="{{ url_for('add_topic') }}" method="POST" class="space-y-6">
             
             <div class="space-y-2">
-                <label for="subject" class="block text-sm font-medium text-slate-700 dark:text-zinc-300">Subject</label>
-                <select name="subject" id="subject" required onchange="toggleNewSubject()"
+                <label for="track" class="block text-sm font-medium text-slate-700 dark:text-zinc-300">Track</label>
+                <select name="track" id="track" required onchange="updateSubjects()"
                     class="block w-full rounded-lg border-slate-300 dark:border-zinc-600 bg-white dark:bg-zinc-900 text-slate-900 dark:text-white px-4 py-3 focus:border-primary-500 focus:ring-primary-500 sm:text-sm transition-colors outline-none border focus:ring-2 focus:ring-opacity-20 shadow-sm">
-                    <option value="" disabled selected>Select a subject...</option>
-                    {% for s in subjects %}
-                    <option value="{{ s }}">{{ s }}</option>
+                    <option value="" disabled selected>Select School or Allen...</option>
+                    {% for track_name in subject_sets.keys() %}
+                    <option value="{{ track_name }}">{{ track_name }}</option>
                     {% endfor %}
-                    <option value="NEW_SUBJECT">+ Add New Subject...</option>
                 </select>
-                <input type="text" name="new_subject_name" id="new_subject_name" placeholder="Enter new subject name" style="display: none;"
-                    class="mt-2 block w-full rounded-lg border-slate-300 dark:border-zinc-600 bg-white dark:bg-zinc-900 text-slate-900 dark:text-white px-4 py-3 placeholder-slate-400 dark:placeholder-zinc-500 focus:border-primary-500 focus:ring-primary-500 sm:text-sm transition-colors outline-none border focus:ring-2 focus:ring-opacity-20 shadow-sm">
+            </div>
+
+            <div class="space-y-2">
+                <label for="subject" class="block text-sm font-medium text-slate-700 dark:text-zinc-300">Subject</label>
+                <select name="subject" id="subject" required
+                    class="block w-full rounded-lg border-slate-300 dark:border-zinc-600 bg-white dark:bg-zinc-900 text-slate-900 dark:text-white px-4 py-3 focus:border-primary-500 focus:ring-primary-500 sm:text-sm transition-colors outline-none border focus:ring-2 focus:ring-opacity-20 shadow-sm">
+                    <option value="" disabled selected>Select a track first...</option>
+                </select>
             </div>
 
             <div class="space-y-2">
@@ -61,31 +66,6 @@
                 <p class="text-xs text-slate-500 dark:text-zinc-400 mt-2">Intervals adapt based on difficulty. Harder tasks are reviewed sooner.</p>
             </div>
 
-            <div class="space-y-3">
-                <label class="block text-sm font-medium text-slate-700 dark:text-zinc-300">Task Color</label>
-                <div class="flex flex-wrap gap-3">
-                    {% set colors = [
-                        ('1', '#7986cb', 'Lavender'),
-                        ('2', '#33b679', 'Sage'),
-                        ('3', '#8e24aa', 'Grape'),
-                        ('4', '#e67c73', 'Flamingo'),
-                        ('5', '#f6bf26', 'Banana'),
-                        ('6', '#f4511e', 'Tangerine'),
-                        ('7', '#039be5', 'Peacock'),
-                        ('8', '#616161', 'Graphite'),
-                        ('9', '#3f51b5', 'Blueberry'),
-                        ('10', '#0b8043', 'Basil'),
-                        ('11', '#d50000', 'Tomato')
-                    ] %}
-                    {% for cid, chex, cname in colors %}
-                    <label class="cursor-pointer relative group">
-                        <input type="radio" name="color_id" value="{{ cid }}" class="peer sr-only" {% if cid == '7' %}checked{% endif %}>
-                        <div class="w-8 h-8 rounded-full border-2 border-transparent peer-checked:border-slate-900 dark:peer-checked:border-white shadow-sm transition-all peer-checked:scale-110" style="background-color: {{ chex }};" title="{{ cname }}"></div>
-                    </label>
-                    {% endfor %}
-                </div>
-            </div>
-
             <div class="pt-4">
                 <button type="submit" class="w-full flex justify-center py-3.5 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors shadow-primary-500/20">
                     Map Tracking Schedule
@@ -97,17 +77,38 @@
 </div>
 
 <script>
-function toggleNewSubject() {
-    const select = document.getElementById('subject');
-    const input = document.getElementById('new_subject_name');
-    if (select.value === 'NEW_SUBJECT') {
-        input.style.display = 'block';
-        input.required = true;
-    } else {
-        input.style.display = 'none';
-        input.required = false;
+const subjectSets = {{ subject_sets | tojson }};
+
+function updateSubjects() {
+    const trackSelect = document.getElementById('track');
+    const subjectSelect = document.getElementById('subject');
+    const selectedTrack = trackSelect.value;
+
+    subjectSelect.innerHTML = '';
+    const placeholder = document.createElement('option');
+    placeholder.value = '';
+    placeholder.disabled = true;
+    placeholder.selected = true;
+    placeholder.textContent = selectedTrack ? 'Select a subject...' : 'Select a track first...';
+    subjectSelect.appendChild(placeholder);
+
+    if (!selectedTrack || !subjectSets[selectedTrack]) {
+        return;
     }
+
+    subjectSets[selectedTrack].forEach((subject) => {
+        const option = document.createElement('option');
+        option.value = subject;
+        option.textContent = subject;
+        subjectSelect.appendChild(option);
+    });
 }
+
+document.addEventListener('DOMContentLoaded', () => {
+    if (document.getElementById('track').value) {
+        updateSubjects();
+    }
+});
 </script>
 
 {% endblock %}
